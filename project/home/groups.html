@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>List Viewer</title>
+    <link rel="stylesheet" href="../css/groups.css">
+</head>
+<body>
+    <div class="container">
+        <label for="group">Select Group:</label>
+        <select id="group" name="group" disabled>
+            <!-- Опции групп будут добавлены динамически при загрузке страницы -->
+        </select>
+        <button onclick="requestData()">View Lists</button>
+
+        <div id="result" style="margin-top: 20px;"></div>
+    </div>
+
+<script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+<script>
+    // Функция для заполнения выпадающего списка групп
+    function fillGroupOptions(groups) {
+        var select = $('#group');
+
+        $.each(groups, function(index, group) {
+            select.append($('<option>', {
+                value: group.group_id,
+                text: group.group_name
+            }));
+        });
+
+        // Разблокировать список групп для менеджера и администратора
+        getUserRole();
+    }
+
+    // Функция для отправки запроса на сервер и получения роли пользователя
+    function getUserRole() {
+        $.ajax({
+            url: '../api/index.php',
+            type: 'GET',
+            dataType: 'json',
+            headers: {
+                'X-Request-URI': '/api/get_user_role',
+                'Authorization': 'fsdsfsdf',
+            }
+        }).done(function(data) {
+            console.log(data);
+            var userRole = data.role;
+
+            if (userRole === "admin" || userRole === "manager") {
+                $('#group').prop('disabled', false);
+            }
+        })
+        .fail(function(jqXHR, textStatus, errorThrown) {
+            console.error('Error:', textStatus, errorThrown);
+        });
+    }
+
+    // Функция для отправки запроса на сервер
+    function requestData() {
+        var group = $('#group').val();
+
+        $.ajax({
+            url: '../api/index.php',
+            type: 'POST',
+            headers: {
+                'X-Request-URI': '/api/view_lists',
+                'Authorization': 'fsdsfsdf',
+            },
+            data: { group_id: group },
+        }).done(function(data) {
+            // Обработка данных и отображение результата
+            var resultDiv = $('#result');
+            resultDiv.html(JSON.stringify(data, null, 2));
+        })
+        .fail(function(jqXHR, textStatus, errorThrown) {
+            console.error('Error:', textStatus, errorThrown);
+        });
+    }
+
+    //getUserRole();
+
+    // Загрузить список групп с сервера при загрузке страницы
+    $.ajax({
+        url: '../api/index.php',
+        type: 'GET',
+        dataType: 'json',
+        headers: {
+            'X-Request-URI': '/api/groups',
+            'Authorization': localStorage.getItem('jwtToken'),
+        }
+    }).done(function(data) {
+        console.log(data);
+        if (data.error === "Unauthorized"){
+            // Переход на другую страницу
+            window.location.href = 'authentification.html';
+        }
+    })
+    .fail(function(jqXHR, textStatus, errorThrown) {
+        console.error('Error:', textStatus, errorThrown);
+    });
+</script>
+</body>
+</html>

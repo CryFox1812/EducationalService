@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance and Grades</title>
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        th, td {
+            border: 1px solid #dddddd;
+            text-align: left;
+            padding: 8px;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        td[contenteditable=true]:focus {
+            outline: 2px solid blue;
+        }
+
+        button {
+            margin-top: 10px;
+            padding: 8px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <label for="discipline">Select Discipline:</label>
+    <select id="discipline" name="discipline">
+        <!-- Опции групп будут добавлены динамически при загрузке страницы -->
+    </select>
+
+    <h2>Attendance and Grades</h2>
+
+    <table id="attendanceAndGradesTable">
+        <thead>
+            <tr>
+                <th>Student ID</th>
+                <th>First Name</th>
+                <th>Last Name</th>
+                <th>Attendance</th>
+                <th>Grade</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Table content will be dynamically added using JavaScript -->
+        </tbody>
+    </table>
+
+<button onclick="saveChanges()">Save Changes</button>
+
+<script>
+    // Assuming the data is received from the server
+    var tableData = [
+        { student_id: 1, first_name: 'John', last_name: 'Doe', attendance: '', grade: '' },
+        // Add more rows as needed
+    ];
+
+    // Function to populate the table with data
+    function populateTable(data) {
+        var table = $('#attendanceAndGradesTable tbody');
+
+        // Clear existing table
+        table.empty();
+
+        // Populate table rows with data
+        data.forEach(function (entry) {
+            var row = $('<tr>');
+            row.append($('<td>').text(entry.student_id));
+            row.append($('<td>').text(entry.first_name));
+            row.append($('<td>').text(entry.last_name));
+            row.append($('<td contenteditable="true">').text(entry.attendance));
+            row.append($('<td contenteditable="true">').text(entry.grade));
+            table.append(row);
+        });
+    }
+
+    // Function to save changes
+    function saveChanges() {
+        var updatedData = [];
+
+        // Collect updated data from the table
+        $('#attendanceAndGradesTable tbody tr').each(function(index, row) {
+            var updatedRow = {
+                student_id: $(row).find('td:eq(0)').text(),
+                first_name: $(row).find('td:eq(1)').text(),
+                last_name: $(row).find('td:eq(2)').text(),
+                attendance: $(row).find('td:eq(3)').text(),
+                grade: $(row).find('td:eq(4)').text(),
+            };
+            updatedData.push(updatedRow);
+        });
+
+        // Send updated data to the server (you need to implement this)
+        console.log(updatedData);
+        // Add your AJAX call here to send the data to the server
+    }
+
+    function requestStudents() {
+        $.ajax({
+            url: '../api/index.php',
+            type: 'POST',
+            dataType: 'json',
+            headers: {
+                'X-Request-URI': '/api/students',
+                'Authorization': localStorage.getItem('jwtToken'),
+            },
+            data: JSON.stringify({ group_id: group }),
+        }).done(function(data) {
+            console.log(data);
+            populateTable(data);
+        })
+        .fail(function(jqXHR, textStatus, errorThrown) {
+            console.error('Error:', textStatus, errorThrown);
+        });
+    }
+
+    $.ajax({
+        url: '../api/index.php',
+        type: 'GET',
+        dataType: 'json',
+        headers: {
+            'X-Request-URI': '/api/disciplines',
+            'Authorization': localStorage.getItem('jwtToken'),
+        }
+    }).done(function(disciplines) {
+        console.log(disciplines);
+        fillDisciplineOptions(disciplines);
+        if (disciplines.error === "Unauthorized"){
+            // Переход на другую страницу
+            window.location.href = 'authentification.html';
+        }
+    })
+    .fail(function(jqXHR, textStatus, errorThrown) {
+        console.error('Error:', textStatus, errorThrown);
+    });
+
+    function fillDisciplineOptions(disciplines) {
+        var select = $('#group');
+
+        $.each(disciplines, function(index, discipline) {
+            select.append($('<option>', {
+                value: discipline.group_id,
+                text: discipline.name
+            }));
+        });
+    }
+</script>
+
+</body>
+</html>

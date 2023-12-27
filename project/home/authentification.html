@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Page</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../static/css/authentification.css">
+</head>
+<body>
+
+    <div class="background">
+        <div class="shape"></div>
+        <div class="shape"></div>
+    </div>
+    <form>
+        <h3>Login Here</h3>
+
+        <label for="username">Username</label>
+        <input type="text" name="username" placeholder="Username" id="username" required>
+
+        <label for="password">Password</label>
+        
+        <div class="password-container">
+            <input type="password" name="password" id="password" placeholder="Password" required>
+            <span class="toggle-password" onclick="togglePassword()">👁️</span>
+        </div>
+
+        <button type="button" onclick="submitForm()">Log In</button>
+
+        <!-- Элемент для отображения сообщений об ошибке -->
+        <div id="error-message"></div>
+    </form>
+
+<script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<script>
+    function togglePassword() {
+        var passwordInput = document.getElementById("password");
+        var eyeIcon = document.querySelector('.toggle-password');
+
+        if (passwordInput.type === "password") {
+            passwordInput.type = "text";
+        } else {
+            passwordInput.type = "password";
+        }
+        
+        eyeIcon.classList.toggle('transparent');
+    }
+
+    function submitForm() {
+        var errorMessageElement = document.getElementById('error-message');
+        errorMessageElement.textContent = '';
+
+        // Считываем значения полей
+        var username = document.querySelector('input[name="username"]').value;
+        var password = document.querySelector('input[name="password"]').value;
+
+        // Создаем объект для отправки данных
+        var requestData = {
+            username: username,
+            password: password
+        };
+
+        console.log(username);
+        console.log(password);
+        console.log(requestData);
+
+        $.ajax({
+            url: '../api/index.php',
+            type: 'POST',
+            //dataType: 'json',
+            headers: {
+                'Registration-Request': 'true',
+                'X-Request-URI': '/api/authentification',
+                //'Content-Type': 'application/json', // Устанавливаем правильный Content-Type
+            },
+            data: JSON.stringify(requestData),
+        })
+        .done(function(data) {
+            data = JSON.parse(data);
+            if (data.token) {
+                // Сохраняем токен в localStorage
+                localStorage.setItem('jwtToken', data.token);
+                console.log('JWT Token saved:', data.token);
+
+                // Переход на другую страницу
+                window.location.href = 'grade_list.html';
+            } else if (data.message){
+                var errorMessageElement = document.getElementById('error-message');
+                errorMessageElement.textContent = data.message;
+            } else {
+                var errorMessageElement = document.getElementById('error-message');
+                errorMessageElement.textContent = 'Token not found in the response.';
+            }
+        })
+        .fail(function(jqXHR, textStatus, errorThrown) {
+            console.error('Error:', textStatus, errorThrown);
+            console.error('Response:', jqXHR.responseText);
+            var errorMessageElement = document.getElementById('error-message');
+            errorMessageElement.textContent = 'Что-то пошло не так. Пожалуйста, повторите попытку или обратитесь в службу поддержки.';
+        });
+    }
+</script>
+
+</body>
+</html>

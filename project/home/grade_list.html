@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grade list</title>
+    <link rel="stylesheet" href="../static/css/v_lists.css">
+</head>
+<body>
+
+<div class="container">
+    <nav>
+        <a href="#">Home</a>
+        <a href="#">Grade</a>
+        <a href="#">Attendance</a>
+        <a href="#">schedule</a>
+    </nav>
+    
+    <div class="container-selects">
+        <label for="group">Group:</label>
+        <select id="group" name="group"></select>
+
+        <label for="discipline">Discipline:</label>
+        <select id="discipline" name="discipline"></select>
+
+        <label for="date">Date:</label>
+        <select id="date" name="date"></select>
+    </div>
+
+    <h2>Grades List</h2>
+    <button onclick="requestGradesList()">View List</button>
+    <table id="gradesTable">
+        <thead>
+            <tr id="tableHeader">
+                <!-- Table headers will be dynamically added using JavaScript -->
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Table content will be dynamically added using JavaScript -->
+        </tbody>
+    </table>
+</div>
+<script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+<script>
+
+    function fillGroupOptions(groups) {
+        var select = $('#group');
+
+        $.each(groups, function(index, group) {
+            select.append($('<option>', {
+                value: group.group_id,
+                text: group.name
+            }));
+        });
+    }
+
+    function fillDisciplineOptions(disciplines) {
+        var select = $('#discipline');
+
+        select.append($('<option>', {
+            value: 'all',
+            text: 'All'
+        }));
+
+        $.each(disciplines, function(index, discipline) {
+            select.append($('<option>', {
+                value: discipline.name,
+                text: discipline.name
+            }));
+        });
+    }
+
+    function fillDateOptions() {
+        var select = $('#date');
+
+        var options = ['today', 'tomorrow', 'week', 'month', 'all'];
+
+        $.each(options, function(index, option) {
+            select.append($('<option>', {
+                value: option,
+                text: option.charAt(0).toUpperCase() + option.slice(1)  // Сделать первую букву заглавной
+            }));
+        });
+    }
+
+    $.ajax({
+        url: '../api/index.php',
+        type: 'GET',
+        dataType: 'json',
+        headers: {
+            'X-Request-URI': '/api/groups',
+            'Authorization': localStorage.getItem('jwtToken'),
+        }
+    }).done(function(groups) {
+        // groups = JSON.parse(groups);
+        console.log(groups);
+        fillGroupOptions(groups);
+        if (groups.error === "Unauthorized"){
+            // Переход на другую страницу
+            window.location.href = 'authentification.html';
+        }
+    })
+    .fail(function(jqXHR, textStatus, errorThrown) {
+        console.error('Error:', textStatus, errorThrown);
+        console.error('Response:', jqXHR.responseText);
+    });
+
+    $.ajax({
+        url: '../api/index.php',
+        type: 'GET',
+        dataType: 'json',
+        headers: {
+            'X-Request-URI': '/api/disciplines',
+            'Authorization': localStorage.getItem('jwtToken'),
+        }
+    }).done(function(disciplines) {
+        // disciplines = JSON.parse(disciplines);
+        console.log(disciplines);
+        fillDisciplineOptions(disciplines);
+        if (disciplines.error === "Unauthorized"){
+            // Переход на другую страницу
+            window.location.href = 'authentification.html';
+        }
+    })
+    .fail(function(jqXHR, textStatus, errorThrown) {
+        console.error('Error:', textStatus, errorThrown);
+        console.error('Response:', jqXHR.responseText);
+    });
+
+    fillDateOptions();
+
+    function populateTable(table_name, data) {
+        
+        var table = document.getElementById(table_name);
+
+        // Проверка наличия кнопки
+        var buttons = document.querySelectorAll('button');
+        var editButton;
+        console.log(buttons);
+
+        buttons.forEach(function (button) {
+            if (button.textContent === 'Edit' ||  button.textContent === 'Save') {
+                editButton = button;
+                editButton.remove();
+            }
+        });
+
+        editButton = document.createElement("button");
+        editButton.textContent = "Edit";
+        editButton.addEventListener("click", function () {
+            EditSwitch();
+        });
+        table.parentNode.appendChild(editButton);
+
+        table.innerHTML = '<thead><tr id="tableHeader"></tr></thead><tbody></tbody>';
+        var tableHeader = table.querySelector('tr');
+
+        Object.keys(data.list[0]).forEach(function (key) {
+            if (key !== 'schedule_id' && key !== 'student_id')
+            {
+            var th = document.createElement("th");
+            th.textContent = key.replace(/_/g, ' ').toUpperCase();
+            tableHeader.appendChild(th);
+            }
+        });
+
+        var tableBody = table.querySelector('tbody');
+        var editMode = false; // флаг для отслеживания режима редактирования
+
+        data.list.forEach(function (entry) {
+            var row = tableBody.insertRow();
+            Object.keys(entry).forEach(function (key) {
+                if (key !== 'schedule_id' && key !== 'student_id')
+                {
+                    var cell = row.insertCell();
+                    cell.textContent = entry[key];
+                }
+            });
+        });
+
+        function EditSwitch() {
+            if (editMode) {
+                saveChanges(data.list);
+                editButton.textContent = "Edit";
+            } else {
+                editButton.textContent = "Save";
+            }
+            editMode = !editMode;
+            updateEditMode();
+
+        }
+
+        function updateEditMode() {
+            var rowCount = table.rows.length;
+            var colCount = table.rows[0].cells.length;
+            for(var i = 1; i < rowCount; i++)
+            {
+                for(var j = 0; j < colCount; j++)
+                {
+                    var cell = table.rows[i].cells[j];
+                    if (j == 5) 
+                    {
+                        cell.setAttribute("contenteditable", editMode);
+                    }
+                }
+            }
+        }
+
+        function saveChanges(dataList) {
+            // Сбор измененных данных и отправка на сервер
+            var editedData = [];
+
+            console.log(table);
+            dataList.forEach(function (entry, rowIndex) {
+                if (entry.schedule_id !== undefined) {
+                    var gradeCell = table.rows[rowIndex + 1].cells[5];
+                    if (gradeCell) {
+                        var editedEntry = {
+                            schedule_id: entry.schedule_id,
+                            student_id: entry.student_id,
+                            grade: gradeCell.textContent || ""
+                        };
+                        editedData.push(editedEntry);
+                    }
+                }
+            });
+
+            console.log(editedData);
+
+            $.ajax({
+                url: '../api/index.php',
+                type: 'POST',
+                dataType: 'json',
+                headers: {
+                    'X-Request-URI': '/api/grades_list',
+                    'Authorization': localStorage.getItem('jwtToken'),
+                },
+                data: JSON.stringify(editedData)
+            }).done(function(data) {
+                // data = JSON.parse(data);
+                console.log('Changes saved successfully:', data);
+            })
+            .fail(function(jqXHR, textStatus, errorThrown) {
+                console.error('Error:', textStatus, errorThrown);
+                console.error('Response:', jqXHR.responseText);
+            });
+        }
+    }
+
+
+    function requestGradesList() {
+        var group = $('#group').val();
+        var discipline = $('#discipline').val();
+        var date = $('#date').val();
+        console.log(group);
+        console.log(discipline);
+        console.log(date);
+
+        $.ajax({
+            url: '../api/index.php',
+            type: 'GET',
+            dataType: 'json',
+            headers: {
+                'X-Request-URI': '/api/grades_list',
+                'Authorization': localStorage.getItem('jwtToken'),
+            },
+            data: { 
+                group_id: group,
+                discipline: discipline,
+                date_type: date,
+             },
+        }).done(function(data) {
+            //data = JSON.parse(data);
+            console.log(data);
+            if (data.list.length > 0) {
+                populateTable("gradesTable", data);
+            } else {
+                showNoDataMessage("gradesTable");
+            }
+        })
+        .fail(function(jqXHR, textStatus, errorThrown) {
+            console.error('Error:', textStatus, errorThrown);
+            console.error('Response:', jqXHR.responseText);
+        });
+    }
+
+    function showNoDataMessage(table_name) {
+        var table = document.getElementById(table_name);
+        table.innerHTML = '<thead><tr><th>No Data Available</th></tr></thead><tbody></tbody>';
+    }
+</script>
+</body>
+</html>

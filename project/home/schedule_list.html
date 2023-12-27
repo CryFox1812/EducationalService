@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schedule</title>
+    <link rel="stylesheet" href="../css/v_lists.css">
+</head>
+<body>
+
+<div class="container">
+    <nav>
+        <a href="#">Home</a>
+        <a href="#">Grade</a>
+        <a href="#">Attendance</a>
+        <a href="#">schedule</a>
+    </nav>
+
+    
+    <div class="container-selects">
+        <label for="date">Date:</label>
+        <select id="date" name="date"></select>
+    </div>
+
+    <h2>Schedule</h2>
+    <button onclick="requestSchedule()">View List</button>
+    <table id="schedule">
+        <thead>
+            <tr id="tableHeader">
+                <!-- Table headers will be dynamically added using JavaScript -->
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Table content will be dynamically added using JavaScript -->
+        </tbody>
+    </table>
+
+</div>
+<script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+<script>
+
+    function fillDateOptions() {
+        var select = $('#date');
+
+        var options = ['today', 'tomorrow', 'week', 'month', 'all'];
+
+        $.each(options, function(index, option) {
+            select.append($('<option>', {
+                value: option,
+                text: option.charAt(0).toUpperCase() + option.slice(1)  // Сделать первую букву заглавной
+            }));
+        });
+    }
+
+    fillDateOptions();
+
+    function populateTable(table_name) {
+        var data = {
+            list: [
+                {
+                    "lecture_number": 1,
+                    "discipline": "С++",
+                    "professor": "Ivanov I. I.",
+                    "audience_code": "B-2",
+                },
+                {
+                    "lecture_number": 2,
+                    "discipline": "С#",
+                    "professor": "Petrov P. A.",
+                    "audience_code": "A-1",
+                },
+                {
+                    "lecture_number": 3,
+                    "discipline": "Python",
+                    "professor": "Smirnov S. V.",
+                    "audience_code": "C-13",
+                },
+                {
+                    "lecture_number": 4,
+                    "discipline": "Java",
+                    "professor": "Kuznetsov K. A.",
+                    "audience_code": "C-4",
+                },
+                {
+                    "lecture_number": 5,
+                    "discipline": "Go",
+                    "professor": "Popova O. N.",
+                    "audience_code": "A-2",
+                },
+            ]
+        };
+        var table = document.getElementById(table_name);
+        table.innerHTML = '<thead><tr id="tableHeader"></tr></thead><tbody></tbody>';
+        var tableHeader = table.querySelector('tr');
+
+        Object.keys(data.list[0]).forEach(function (key) {
+            var th = document.createElement("th");
+            th.textContent = key.replace(/_/g, ' ').toUpperCase();
+            tableHeader.appendChild(th);
+        });
+
+        var tableBody = table.querySelector('tbody');
+        data.list.forEach(function (entry) {
+            var row = tableBody.insertRow();
+            Object.values(entry).forEach(function (value) {
+                var cell = row.insertCell();
+                cell.textContent = value;
+            });
+        });
+    }
+
+    function requestSchedule() {
+        populateTable("schedule");
+
+        /*var group = $('#group').val();
+        console.log(group);
+
+        $.ajax({
+            url: '../api/index.php',
+            type: 'POST',
+            dataType: 'json',
+            headers: {
+                'X-Request-URI': '/api/view_schedule_list',
+                'Authorization': localStorage.getItem('jwtToken'),
+            },
+            data: JSON.stringify({ group_id: group }),
+        }).done(function(data) {
+            console.log(data);
+            if (data.list.length > 0) {
+                populateTable("schedule", data);
+            } else {
+                showNoDataMessage("schedule");
+            }
+        })
+        .fail(function(jqXHR, textStatus, errorThrown) {
+            console.error('Error:', textStatus, errorThrown);
+            console.error('Response:', jqXHR.responseText);
+        });*/
+    }
+
+    function showNoDataMessage(table_name) {
+        var table = document.getElementById(table_name);
+        table.innerHTML = '<thead><tr><th>No Data Available</th></tr></thead><tbody></tbody>';
+    }
+</script>
+</body>
+</html>
